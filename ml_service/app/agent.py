@@ -1,8 +1,9 @@
 import json
-from datetime import datetime
 from typing import Dict, Any, Optional, List
 import re
 import logging
+
+from translation import check_and_translate_to_russian
 
 from .enums import InputType, TaskType
 from .constants import TASK_PARAMETERS, TASK_INPUT_SUPPORT, FEW_SHOT_EXAMPLES
@@ -33,7 +34,25 @@ async def classify_request(user_input: str, available_input_types: List[InputTyp
             if any(input_type in TASK_INPUT_SUPPORT[task] for input_type in available_input_types)
         ]
         task_descriptions = "\n".join([f"- {task.value}: {task.name}" for task in available_tasks])
-        prompt = f"""{FEW_SHOT_EXAMPLES}\n\nДоступные задачи:\n{task_descriptions}\n\nЗапрос пользователя: {user_input}\n\nРассуждение: Давайте проанализируем запрос пользователя шаг за шагом:\n1) Какую основную потребность выражает пользователь?\n2) Какая из доступных задач лучше всего подходит для решения этой потребности?\n3) Какие параметры нужны для выполнения задачи?\n\nНа основе анализа:"""
+        
+        prompt = f"""
+{FEW_SHOT_EXAMPLES}
+
+Доступные задачи:
+{task_descriptions}
+
+Запрос пользователя: {user_input}
+
+Рассуждение: Давайте проанализируем запрос пользователя шаг за шагом:
+1) Какую основную потребность выражает пользователь?
+2) Какая из доступных задач лучше всего подходит для решения этой потребности?
+3) Какие параметры нужны для выполнения задачи?
+
+Финальные две строки всегда должны быть в формате:
+Выбранная задача: <...>
+Параметры: <...>
+
+На основе анализа:"""
         
         reasoning = await llm_generate(prompt)
         logger.info(f"Reasoning: {reasoning}")
@@ -56,14 +75,7 @@ async def classify_request(user_input: str, available_input_types: List[InputTyp
         except ValueError:
             return {"status": "error", "message": f"Неизвестная задача: {task_name}"}
         
-        request_data = {
-            "task": task.value,
-            "timestamp": datetime.now().isoformat(),
-            "input": user_input,
-            "parameters": parameters
-        }
-        
-        return {"status": "success", "request": request_data, "reasoning": reasoning}
+        return {"status": "success", "task": task.value, "parameters": parameters, "reasoning": reasoning}
     except Exception as e:
         logger.error(f"Error in classify_request: {str(e)}", exc_info=True)
         raise
@@ -77,6 +89,7 @@ async def process_request(
 ) -> Dict[str, Any]:
     """Основная функция обработки запроса пользователя"""
     try:
+        input_data = check_and_translate_to_russian(input_data)
         logger.info(f"Processing request: {input_data[:100]}... (type: {input_type})")
         available_input_types = [input_type]
         
@@ -89,21 +102,20 @@ async def process_request(
             logger.error(f"Classification failed: {classification_result['message']}")
             return classification_result
         
-        logger.info(f"Request classified as: {classification_result['request']['task']}")
-        text_response = json.dumps(classification_result["request"], ensure_ascii=False, indent=2)
-        result = {
-            "status": "success",
-            "classification": classification_result,
-            "text_response": text_response
-        }
+        logger.info(f"Request classified as: {classification_result['task']}")
+        text_response = json.dumps(classification_result, ensure_ascii=False, indent=2)
+        # result = {
+        #     "status": "success",
+        #     "classification": classification_result,
+        # }
         
         # Generate voice response if needed
         if needs_voice_response and output_audio_path:
             audio_path = await text_to_speech(text_response, output_audio_path)
-            result["audio_response"] = audio_path
+            # result["audio_response"] = audio_path
             logger.info(f"Generated voice response at: {audio_path}")
         
-        return result
+        return classification_result
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}", exc_info=True)
         return {"status": "error", "message": f"Ошибка при обработке запроса: {str(e)}"} 

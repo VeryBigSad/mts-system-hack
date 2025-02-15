@@ -55,9 +55,9 @@ class MLService:
                 
                 if result["status"] == "success":
                     # Store the result back in Redis
-                    await self._redis.set(f"ai:complete:{str(request['request_uuid']).lower()}", orjson.dumps({
-                        "response": result["text_response"]
-                    }))
+                    key = f"ai:complete:{str(request['request_uuid']).lower()}"
+                    logger.info(f"Key: {key}")
+                    await self._redis.set(key, orjson.dumps(result))
                     logger.info(f"Request {request['request_uuid']} processed successfully")
                 else:
                     logger.error(f"Failed to process request {request['request_uuid']}: {result['message']}")

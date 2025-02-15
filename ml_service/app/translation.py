@@ -1,5 +1,6 @@
 from googletrans import Translator
 
+
 def check_and_translate_to_russian(text: str) -> str:
     """
     Проверяет первые символы текста на русский язык и при необходимости переводит весь текст
@@ -18,7 +19,3 @@ def check_and_translate_to_russian(text: str) -> str:
             print(f"Ошибка при переводе: {str(e)}")
             return text
     return text
-
-#в начало классификации или в основной респонс хз как по вайбу 
-# Проверяем и при необходимости переводим запрос на русский
-    user_input = check_and_translate_to_russian(user_input)

@@ -66,7 +66,7 @@ class RedisClient:
             logger.error(f"Error queueing text request: {e}")
             raise
 
-    async def get_ai_response(self, request_uuid: str) -> str | None:
+    async def get_ai_response(self, request_uuid: str) -> AIResponse | None:
         """
         Get AI response for a specific request ID.
 
@@ -76,23 +76,17 @@ class RedisClient:
         Returns:
             The response text if available, None otherwise
         """
-        try:
-            response_data = await self._redis.get(f"ai:complete:{str(request_uuid).lower()}")
-            if response_data:
-                # Parse and validate the response
-                try:
-                    response_json = orjson.loads(response_data)
-                    response = AIResponse.model_validate(response_json)
-                    # Clean up the key after retrieving
-                    await self._redis.delete(f"ai:complete:{request_uuid}")
-                    return response.ai_response
-                except Exception as e:
-                    logger.error(f"Invalid AI response format: {e}")
-                    return None
+        key = f"ai:complete:{str(request_uuid).lower()}"
+        response_data = await self._redis.get(key)
+        if response_data is None:
             return None
-        except Exception as e:
-            logger.error(f"Error getting AI response: {e}")
-            return None
+        logger.info(f"Response data: {response_data}")
+        if response_data:
+            response_json = orjson.loads(response_data)
+            
+            await self._redis.delete(f"ai:complete:{request_uuid}")
+
+            return AIResponse.model_validate(response_json)
 
     async def set_ai_response(self, request_uuid: str, response: str) -> None:
         """

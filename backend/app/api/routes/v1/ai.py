@@ -1,10 +1,11 @@
 import logging
 import uuid
 
-from fastapi import APIRouter, status, Request
+from app.api.schemas.ai import AIResponse
+from fastapi import APIRouter, HTTPException, status, Request
 from fastapi.responses import JSONResponse
 
-from app.api.schemas.speech_to_text import TextRequest, ProcessingResponse
+from app.api.schemas.speech_to_text import TextRequest
 from app.core.redis import get_redis_client
 from app.core.db.models import Request as RequestModel
 from app.core.connector import wait_for_response
@@ -15,8 +16,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["processing"])
 
 
-@router.post("/speech", status_code=status.HTTP_200_OK, response_model=ProcessingResponse)
-async def process_speech(request: Request) -> ProcessingResponse:
+@router.post("/speech", status_code=status.HTTP_200_OK, response_model=AIResponse)
+async def process_speech(request: Request) -> AIResponse | None:
     """
     Process speech from raw MP3 bytes.
     The request body should contain the raw bytes of an MP3 file.
@@ -28,10 +29,7 @@ async def process_speech(request: Request) -> ProcessingResponse:
         logger.info("Received audio data")
 
         if not audio_bytes:
-            return JSONResponse(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                content={"detail": "Request body is empty. Expected MP3 bytes."},
-            )
+            raise ValueError("Request body is empty. Expected MP3 bytes.")
 
         # Generate unique ID for this request
         request_uuid = uuid.uuid4()
@@ -40,7 +38,7 @@ async def process_speech(request: Request) -> ProcessingResponse:
         try:
             text = await speech_to_text(audio_bytes)
         except ValueError as e:
-            return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(e)})
+            raise ValueError(str(e))
 
         # Queue the text processing request
         await redis_client.queue_text_request(str(request_uuid), text)
@@ -53,17 +51,20 @@ async def process_speech(request: Request) -> ProcessingResponse:
             response = await wait_for_response(request_uuid)
             # Update database record with the response
             await RequestModel.filter(id=request_uuid).update(status="Completed", response=response)
-            return ProcessingResponse(request_id=str(request_uuid), status="Completed", response=response)
+            return response
         except TimeoutError:
-            return ProcessingResponse(request_id=str(request_uuid), status="Processing", response=None)
+            return None
 
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.exception(f"Error processing audio: {e}")
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "Error processing audio"})
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error processing audio")
 
 
-@router.post("/text", status_code=status.HTTP_200_OK, response_model=ProcessingResponse)
-async def process_text(request: TextRequest) -> ProcessingResponse:
+@router.post("/text", status_code=status.HTTP_200_OK, response_model=AIResponse)
+async def process_text(request: TextRequest) -> AIResponse:
     """
     Queue text for processing.
     """
@@ -82,9 +83,10 @@ async def process_text(request: TextRequest) -> ProcessingResponse:
             response = await wait_for_response(request_uuid)
             # Update database record with the response
             await RequestModel.filter(id=request_uuid).update(status="Completed", response=response)
-            return ProcessingResponse(request_id=str(request_uuid), status="Completed", response=response)
+            return response
         except TimeoutError:
-            return ProcessingResponse(request_id=str(request_uuid), status="Processing", response=None)
+            return None
+            # return ProcessingResponse(request_id=str(request_uuid), status="Processing", response=None)
 
     except Exception as e:
         logger.exception(f"Error queueing text: {e}")

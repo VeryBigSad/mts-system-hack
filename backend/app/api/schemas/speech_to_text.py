@@ -1,14 +1,13 @@
 from pydantic import BaseModel
 
+from app.api.schemas.ai import AIResponse
+
 
 class TextRequest(BaseModel):
     text: str
 
-
 class ProcessingResponse(BaseModel):
-    request_id: str
-    status: str
-
+    response: AIResponse
 
 class TranscriptionResult(BaseModel):
     text: str
