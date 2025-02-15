@@ -24,9 +24,7 @@ services:
     volumes:
       - ./logs:/src/logs
     networks:
-      ml_service_network:
-        aliases:
-          - backend
+      - ml_service_network
 
   postgres_db:
     image: postgres:17-alpine
@@ -42,9 +40,7 @@ services:
     volumes:
       - postgres_db:/var/lib/postgresql/data
     networks:
-      ml_service_network:
-        aliases:
-          - postgres_db
+      - ml_service_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -54,14 +50,11 @@ services:
   redis_db:
     image: redis:7.2.4-alpine
     container_name: redis_db
-    hostname: redis_db
     restart: "always"
     ports:
       - "6379:6379"
     networks:
-      ml_service_network:
-        aliases:
-          - redis_db
+      - ml_service_network
 
 volumes:
   postgres_db:
@@ -70,7 +63,7 @@ networks:
   ml_service_network:
     driver: bridge
     name: ml_service_network
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.28.0.0/16
+    # ipam:
+    #   driver: default
+    #   config:
+    #     - subnet: 172.28.0.0/16

@@ -26,11 +26,11 @@ export const ChatInterface: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = (text: string) => {
+  const handleSendMessage = (text: string, sender: 'user' | 'assistant' = 'user') => {
     const newMessage: Message = {
       id: Date.now().toString(),
       text,
-      sender: 'user',
+      sender,
       timestamp: new Date(),
     };
     setMessages(prev => [...prev, newMessage]);

@@ -5,6 +5,10 @@ interface MessageListProps {
   messages: Message[];
 }
 
+const formatText = (text: string) => {
+  return text.replace(/_(.*?)_/g, '<i>$1</i>');
+};
+
 export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -22,7 +26,7 @@ export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
                 : 'bg-gray-200 text-gray-900'
             }`}
           >
-            <p>{message.text}</p>
+            <p dangerouslySetInnerHTML={{ __html: formatText(message.text) }} />
             <span className="text-xs opacity-70">
               {message.timestamp.toLocaleTimeString()}
             </span>

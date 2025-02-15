@@ -100,7 +100,7 @@ async def process_speech(request: Request) -> AIResponse | None:
             await RequestModel.filter(id=request_uuid).update(status="Completed", response=response)
             return response
         except TimeoutError:
-            return None
+            raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="Timeout waiting for response")
 
     except ValueError as e:
         logger.error(f"Validation error: {e}")
@@ -132,9 +132,8 @@ async def process_text(request: TextRequest) -> AIResponse:
             await RequestModel.filter(id=request_uuid).update(status="Completed", response=response)
             return response
         except TimeoutError:
-            return None
-            # return ProcessingResponse(request_id=str(request_uuid), status="Processing", response=None)
+            raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="Timeout waiting for response")
 
     except Exception as e:
         logger.exception(f"Error queueing text: {e}")
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": "Error queueing text"})
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error queueing text")

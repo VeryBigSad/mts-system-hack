@@ -6,8 +6,54 @@ import { translations } from '../translations';
 
 interface InputAreaProps {
   mode: 'text' | 'voice' | 'sign';
-  onSendMessage: (text: string) => void;
+  onSendMessage: (text: string, sender: 'user' | 'assistant') => void;
 }
+
+const formatBotResponse = (response: any): string => {
+  try {
+    if (typeof response === 'string') {
+      response = JSON.parse(response);
+    }
+
+    if (response.status !== 'success') {
+      return translations.processingError;
+    }
+
+    const task = response.task;
+    const params = response.parameters;
+
+    switch (task) {
+      case 'call_elevator':
+        const direction = params.direction === 'up' ? '⬆️' : '⬇️';
+        return `${direction} Вызываю лифт на ${params.floor} этаж`;
+      
+      case 'check_camera':
+        return `🎥 Проверяю камеру ${params.camera_id} (${params.location})`;
+      
+      case 'check_snow':
+        return `❄️ Проверяю уровень снега: ${params.location}`;
+      
+      case 'create_ticket':
+        const priority = params.priority === 'high' ? '🔴' : params.priority === 'normal' ? '🟡' : '🟢';
+        return `${priority} Создаю заявку: ${params.description}`;
+      
+      case 'submit_readings':
+        return `📊 Передаю показания ${params.meter_type}: ${params.value}`;
+      
+      case 'pay_utilities':
+        return `💳 Оплата ${params.service_type}: ${params.amount} руб.`;
+      
+      case 'check_obstacles':
+        return `🚧 Проверка препятствий: ${params.location}, ${params.floor} этаж`;
+      
+      default:
+        return JSON.stringify(response, null, 2);
+    }
+  } catch (error) {
+    console.error('Error formatting bot response:', error);
+    return JSON.stringify(response, null, 2);
+  }
+};
 
 export const InputArea: React.FC<InputAreaProps> = ({ mode, onSendMessage }) => {
   const [text, setText] = useState('');
@@ -20,16 +66,17 @@ export const InputArea: React.FC<InputAreaProps> = ({ mode, onSendMessage }) => 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim()) {
+      let textCopy = text;
       setIsProcessing(true);
+      setText('');
       try {
-        onSendMessage(text);
+        onSendMessage(textCopy, 'user');
         const response = await processText(text);
-        onSendMessage(JSON.stringify(response, null, 2));
+        onSendMessage(formatBotResponse(response), 'assistant');
       } catch (error) {
-        onSendMessage(translations.processingError);
+        onSendMessage(translations.processingError, 'assistant');
       } finally {
         setIsProcessing(false);
-        setText('');
       }
     }
   };
@@ -53,10 +100,11 @@ export const InputArea: React.FC<InputAreaProps> = ({ mode, onSendMessage }) => 
           const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
           try {
             setIsProcessing(true);
+            onSendMessage("_Голосовое сообщение_", 'user');
             const response = await processSpeech(audioBlob);
-            onSendMessage(JSON.stringify(response, null, 2));
+            onSendMessage(formatBotResponse(response), 'assistant');
           } catch (error) {
-            onSendMessage(translations.voiceProcessingError);
+            onSendMessage(translations.voiceProcessingError, 'assistant');
           } finally {
             setIsProcessing(false);
           }
@@ -68,7 +116,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ mode, onSendMessage }) => 
       })
       .catch(error => {
         console.error('Error accessing microphone:', error);
-        onSendMessage(translations.microphoneError);
+        onSendMessage(translations.microphoneError, 'assistant');
       });
   };
 
@@ -89,7 +137,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ mode, onSendMessage }) => 
         />
         <button
           className="absolute bottom-4 right-4 bg-blue-600 text-white p-2 rounded-full"
-          onClick={() => onSendMessage(translations.signLanguageDetected)}
+          onClick={() => onSendMessage(translations.signLanguageDetected, 'assistant')}
           disabled={isProcessing}
         >
           <Camera size={24} />

@@ -16,3 +16,4 @@ volumes:
 networks:
   ml_service_network:
     external: true
+    name: ml_service_network

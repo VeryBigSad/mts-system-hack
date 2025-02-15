@@ -17,7 +17,7 @@ export async function processText(text: string): Promise<any> {
 }
 
 export async function processSpeech(audioBlob: Blob): Promise<any> {
-  const response = await fetch(`${API_BASE_URL}/sound`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/ai/speech`, {
     method: 'POST',
     headers: {
       'Content-Type': 'audio/webm',
