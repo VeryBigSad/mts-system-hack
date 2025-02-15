@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "mts-hackathon-backend"
+version = "0.1.0"
+description = "MTS Hackathon backend"
+authors = ["Mikhail Khromov <khromov05@gmail.com>"]
+license = "UNLICENSE"
+readme = "README.md"
+packages = [{include = "app"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+aioredis3 = "^2.0.1"
+pydantic = "^2.9.2"
+orjson = "^3.10.11"
+fastapi = "^0.115.5"
+tortoise-orm = "^0.21.7"
+asyncpg = "^0.30.0"
+uvicorn = "^0.32.0"
+starlette = "^0.41.2"
+python-dotenv = "^1.0.1"
+redis = {extras = ["hiredis"], version = "^5.2.0"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

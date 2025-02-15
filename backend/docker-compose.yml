@@ -1,0 +1,44 @@
+version: '3.8'
+
+# this is a development docker compose file.
+# please, don't use it for production. It has exposed ports and default passwords.
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: backend
+    restart: "always"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres_db
+      - redis_db
+    env_file:
+      - .env 
+    volumes:
+      - ./logs:/src/logs
+
+  postgres_db:
+    image: postgres:17-alpine
+    container_name: postgres_db
+    restart: "always"
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_db:/var/lib/postgresql/data
+
+  redis_db:
+    image: redis:7.2.4-alpine
+    container_name: redis_db
+    restart: "always"
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_db:
