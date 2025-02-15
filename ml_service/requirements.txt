@@ -1,0 +1,4 @@
+openai
+redis[hiredis]
+aioredis3
+orjson

@@ -77,7 +77,7 @@ class RedisClient:
             The response text if available, None otherwise
         """
         try:
-            response_data = await self._redis.get(f"ai:complete:{request_uuid}")
+            response_data = await self._redis.get(f"ai:complete:{str(request_uuid).lower()}")
             if response_data:
                 # Parse and validate the response
                 try:

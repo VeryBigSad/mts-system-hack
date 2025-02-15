@@ -4,25 +4,34 @@ version: '3.8'
 # please, don't use it for production. It has exposed ports and default passwords.
 
 services:
+
   backend:
     build:
       context: .
       dockerfile: Dockerfile.dev
     container_name: backend
+    hostname: backend
     restart: "always"
     ports:
       - "8000:8000"
     depends_on:
-      - postgres_db
-      - redis_db
+      postgres_db:
+        condition: service_healthy
+      redis_db:
+        condition: service_started
     env_file:
       - .env 
     volumes:
       - ./logs:/src/logs
+    networks:
+      ml_service_network:
+        aliases:
+          - backend
 
   postgres_db:
     image: postgres:17-alpine
     container_name: postgres_db
+    hostname: postgres_db
     restart: "always"
     ports:
       - "5432:5432"
@@ -32,13 +41,36 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - postgres_db:/var/lib/postgresql/data
+    networks:
+      ml_service_network:
+        aliases:
+          - postgres_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis_db:
     image: redis:7.2.4-alpine
     container_name: redis_db
+    hostname: redis_db
     restart: "always"
     ports:
       - "6379:6379"
+    networks:
+      ml_service_network:
+        aliases:
+          - redis_db
 
 volumes:
   postgres_db:
+
+networks:
+  ml_service_network:
+    driver: bridge
+    name: ml_service_network
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
