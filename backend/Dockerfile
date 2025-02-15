@@ -40,6 +40,7 @@ WORKDIR /src
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gettext \
+    ffmpeg \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

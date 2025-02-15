@@ -1,9 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 
 
 class BaseConfigsModel(BaseModel):
     IS_DEBUG: bool = False
     EXTERNAL_URL: str | None = None
+    HF_TOKEN: SecretStr | None = None
 
 
 class RedisConfigsModel(BaseModel):

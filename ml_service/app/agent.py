@@ -3,20 +3,12 @@ from typing import Dict, Any, Optional, List
 import re
 import logging
 
-from translation import check_and_translate_to_russian
-
+from .translation import check_and_translate_to_russian
 from .enums import InputType, TaskType
 from .constants import TASK_PARAMETERS, TASK_INPUT_SUPPORT, FEW_SHOT_EXAMPLES
 from .llm import llm_generate
 
 logger = logging.getLogger(__name__)
-
-
-async def speech_to_text(audio_path: str) -> str:
-    """Заглушка для конвертации речи в текст"""
-    logger.info(f"Конвертация аудио {audio_path} в текст")
-    # TODO: Implement actual async speech-to-text conversion
-    return "преобразованный текст из аудио"
 
 
 async def text_to_speech(text: str, output_path: str) -> str:
@@ -94,7 +86,7 @@ async def process_request(
         available_input_types = [input_type]
         
         # Convert voice to text if needed
-        user_input = await speech_to_text(input_data) if input_type == InputType.VOICE else input_data
+        user_input = input_data
         
         # Classify the request
         classification_result = await classify_request(user_input, available_input_types)
