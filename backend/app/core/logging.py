@@ -3,6 +3,7 @@ import os
 import sys
 from logging.handlers import TimedRotatingFileHandler
 
+
 def setup_logging(
     level: str = "INFO",
 ) -> None:
@@ -24,8 +25,7 @@ def setup_logging(
 
     # Create formatter
     formatter = logging.Formatter(
-        fmt='%(asctime)s | %(levelname)-8s | %(name)s | %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
 
     # Console handler setup

@@ -33,9 +33,24 @@ logger = logging.getLogger(__name__)
 #     created_at = fields.DatetimeField(auto_now_add=True)
 #     updated_at = fields.DatetimeField(auto_now=True)
 
+
 class User(Model):
     class Meta:
         table = "users"
         ordering = ["created_at"]
 
     id = fields.BigIntField(pk=True, unique=True, index=True)
+
+
+class Request(Model):
+    class Meta:
+        table = "requests"
+        ordering = ["-created_at"]
+
+    id = fields.UUIDField(pk=True)
+    request_type = fields.CharField(max_length=32)  # 'speech' or 'text'
+    input_text = fields.TextField(null=True)  # For text requests or transcribed speech
+    status = fields.CharField(max_length=64)
+    response = fields.TextField(null=True)  # Store the AI's response
+    created_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now=True)
