@@ -1,63 +1,84 @@
-# Frontend Application
+# Frontend Приложение
 
-This is a React + TypeScript frontend application built with Vite and TailwindCSS.
+Веб-интерфейс для проекта "Инклюзивный дом" на React + TypeScript.
 
-## Prerequisites
+## Быстрый старт
 
-- Node.js 18.x or higher
-- npm or yarn
-- Docker (optional, for containerized deployment)
+### Запуск через Docker (рекомендуется)
 
-## Local Development
+1. Убедитесь, что у вас установлены Docker и Docker Compose
+2. Заполните ссылку на бэкенд в файле `docker-compose.yml` в параметре `- VITE_API_BASE_URL=http://localhost:8000` (если запускать все локально, то ссылка на бэкенд будет http://localhost:8000)
+3. Запустите приложение:
+```bash
+docker compose up --build
+```
+Приложение будет доступно по адресу `http://localhost:3000`
 
-1. Install dependencies:
+### Локальная разработка
+
+1. Установите зависимости:
 ```bash
 npm install
 ```
 
-2. Start the development server:
+2. Запустите сервер разработки:
 ```bash
 npm run dev
 ```
+Приложение будет доступно по адресу `http://localhost:5173`
 
-The application will be available at `http://localhost:5173`
+## Требования
 
-## Building for Production
+- Node.js 18.x или выше
+- npm или yarn
+- Docker (опционально, для запуска в контейнере)
 
-To build the application for production:
+## Сборка для продакшена
+
+Для сборки приложения в продакшен:
 
 ```bash
 npm run build
 ```
 
-The built files will be available in the `dist` directory.
+Собранные файлы будут доступны в директории `dist`.
 
-## Docker Deployment
+## Доступные команды
 
-1. Build the Docker image:
-```bash
-docker compose build
-```
+- `npm run dev` - Запуск сервера разработки
+- `npm run build` - Сборка для продакшена
+- `npm run preview` - Предпросмотр продакшен-сборки локально
+- `npm run lint` - Запуск проверки кода ESLint
 
-2. Run the container:
-```bash
-docker compose up
-```
-
-The application will be available at `http://localhost:3000`
-
-## Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build locally
-- `npm run lint` - Run ESLint
-
-## Technologies Used
+## Используемые технологии
 
 - React 18
 - TypeScript
 - Vite
 - TailwindCSS
-- MediaPipe
-- React Webcam 
+- MediaPipe (распознавание жестов)
+- React Webcam (работа с камерой)
+
+## Структура проекта
+
+```
+frontend/
+├── src/                # Исходный код
+│   ├── components/     # React компоненты
+│   ├── api/           # API клиент
+│   └── types/         # TypeScript типы
+├── public/            # Статические файлы
+└── dist/             # Собранное приложение
+```
+
+## Переменные окружения
+
+- `VITE_API_BASE_URL` - URL бэкенд API (по умолчанию: http://localhost:8000)
+
+## Особенности
+
+- Поддержка голосового ввода
+- Распознавание языка жестов через веб-камеру
+- Текстовый чат
+- Озвучивание ответов системы
+- Адаптивный дизайн 
