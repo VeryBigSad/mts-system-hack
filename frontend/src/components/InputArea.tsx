@@ -1,12 +1,17 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
 import Webcam from 'react-webcam';
-import { Send, Mic, Camera, StopCircle } from 'lucide-react';
-import { processText, processSpeech } from '../api';
+import { Send, Mic, Camera, StopCircle, Hand } from 'lucide-react';
+import { processText, processSpeech, processGesture } from '../api';
 import { translations } from '../translations';
 
 interface InputAreaProps {
   mode: 'text' | 'voice' | 'sign';
   onSendMessage: (text: string, sender: 'user' | 'assistant') => void;
+}
+
+export interface InputAreaHandle {
+  setText: (text: string) => void;
+  submitForm: () => void;
 }
 
 const formatBotResponse = (response: any): string => {
@@ -55,13 +60,30 @@ const formatBotResponse = (response: any): string => {
   }
 };
 
-export const InputArea: React.FC<InputAreaProps> = ({ mode, onSendMessage }) => {
+export const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(({ mode, onSendMessage }, ref) => {
   const [text, setText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const webcamRef = useRef<Webcam>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const formRef = useRef<HTMLFormElement>(null);
+  const streamIntervalRef = useRef<number>();
+
+  useEffect(() => {
+    // Cleanup interval on unmount or mode change
+    return () => {
+      if (streamIntervalRef.current) {
+        clearInterval(streamIntervalRef.current);
+        streamIntervalRef.current = undefined;
+      }
+    };
+  }, [mode]);
+
+  useImperativeHandle(ref, () => ({
+    setText: (newText: string) => setText(newText),
+    submitForm: () => formRef.current?.requestSubmit()
+  }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +93,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ mode, onSendMessage }) => 
       setText('');
       try {
         onSendMessage(textCopy, 'user');
-        const response = await processText(text);
+        const response = await processText(textCopy);
         onSendMessage(formatBotResponse(response), 'assistant');
       } catch (error) {
         onSendMessage(translations.processingError, 'assistant');
@@ -127,20 +149,60 @@ export const InputArea: React.FC<InputAreaProps> = ({ mode, onSendMessage }) => 
     }
   };
 
+  const toggleGestureStream = async () => {
+    if (!isRecording && webcamRef.current) {
+      // Start streaming
+      setIsRecording(true);
+      onSendMessage("_Распознавание жестов активировано_", 'user');
+
+      streamIntervalRef.current = window.setInterval(async () => {
+        try {
+          const screenshot = webcamRef.current?.getScreenshot();
+          if (screenshot) {
+            const response = await processGesture(screenshot);
+            if (response.status === 'success') {
+              onSendMessage(formatBotResponse(response), 'assistant');
+            }
+          }
+        } catch (error) {
+          console.error('Error processing gesture:', error);
+          if (streamIntervalRef.current) {
+            clearInterval(streamIntervalRef.current);
+            streamIntervalRef.current = undefined;
+            setIsRecording(false);
+            onSendMessage(translations.processingError, 'assistant');
+          }
+        }
+      }, 500);
+    } else {
+      // Stop streaming
+      if (streamIntervalRef.current) {
+        clearInterval(streamIntervalRef.current);
+        streamIntervalRef.current = undefined;
+        setIsRecording(false);
+        onSendMessage("_Распознавание жестов остановлено_", 'user');
+      }
+    }
+  };
+
   if (mode === 'sign') {
     return (
       <div className="relative">
         <Webcam
           ref={webcamRef}
           audio={false}
+          screenshotFormat="image/jpeg"
           className="w-full h-48 rounded-lg"
         />
         <button
-          className="absolute bottom-4 right-4 bg-blue-600 text-white p-2 rounded-full"
-          onClick={() => onSendMessage(translations.signLanguageDetected, 'assistant')}
+          className={`absolute bottom-4 right-4 p-4 rounded-full ${
+            isRecording ? 'bg-red-600' : 'bg-blue-600'
+          } text-white ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+          onClick={toggleGestureStream}
           disabled={isProcessing}
+          title={isRecording ? 'Нажмите, чтобы остановить' : 'Нажмите, чтобы начать распознавание'}
         >
-          <Camera size={24} />
+          {isRecording ? <StopCircle size={24} /> : <Hand size={24} />}
         </button>
       </div>
     );
@@ -166,7 +228,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ mode, onSendMessage }) => 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
+    <form ref={formRef} onSubmit={handleSubmit} className="flex gap-2">
       <input
         type="text"
         value={text}
@@ -187,4 +249,4 @@ export const InputArea: React.FC<InputAreaProps> = ({ mode, onSendMessage }) => 
       </button>
     </form>
   );
-};
+});

@@ -3,7 +3,7 @@ import { Message } from '../types';
 import { MessageList } from './MessageList';
 import { InputArea } from './InputArea';
 import { ActionPanel } from './ActionPanel';
-import { Camera, Mic, Type } from 'lucide-react';
+import { Hand, Mic, Type } from 'lucide-react';
 import { translations } from '../translations';
 
 export const ChatInterface: React.FC = () => {
@@ -17,6 +17,7 @@ export const ChatInterface: React.FC = () => {
   ]);
   const [inputMode, setInputMode] = useState<'text' | 'voice' | 'sign'>('text');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputAreaRef = useRef<{ setText: (text: string) => void, submitForm: () => void }>();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -36,11 +37,18 @@ export const ChatInterface: React.FC = () => {
     setMessages(prev => [...prev, newMessage]);
   };
 
+  const handleActionClick = (description: string) => {
+    if (inputAreaRef.current) {
+      inputAreaRef.current.setText(description);
+      inputAreaRef.current.submitForm();
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <div className="flex-1 overflow-hidden">
         <div className="h-full flex flex-col">
-          <ActionPanel />
+          <ActionPanel onActionClick={handleActionClick} />
           <MessageList messages={messages} />
           <div ref={messagesEndRef} />
         </div>
@@ -67,10 +75,14 @@ export const ChatInterface: React.FC = () => {
             className={`p-2 rounded-full ${inputMode === 'sign' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100'}`}
             title="Язык жестов"
           >
-            <Camera size={20} />
+            <Hand size={20} />
           </button>
         </div>
-        <InputArea mode={inputMode} onSendMessage={handleSendMessage} />
+        <InputArea 
+          mode={inputMode} 
+          onSendMessage={handleSendMessage} 
+          ref={inputAreaRef}
+        />
       </div>
     </div>
   );

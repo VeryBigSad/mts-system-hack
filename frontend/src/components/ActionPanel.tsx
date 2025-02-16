@@ -9,6 +9,10 @@ import {
   CreditCard
 } from 'lucide-react';
 
+interface ActionPanelProps {
+  onActionClick: (description: string) => void;
+}
+
 const iconMap = {
   'ticket': Ticket,
   'elevator': ArrowUpDown,
@@ -18,7 +22,7 @@ const iconMap = {
   'credit-card': CreditCard
 };
 
-export const ActionPanel: React.FC = () => {
+export const ActionPanel: React.FC<ActionPanelProps> = ({ onActionClick }) => {
   return (
     <div className="bg-white border-b border-gray-200">
       <div className="max-w-screen-xl mx-auto p-4">
@@ -29,7 +33,7 @@ export const ActionPanel: React.FC = () => {
               <button
                 key={action.id}
                 className="flex flex-col items-center p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                onClick={() => console.log(`Action clicked: ${action.id}`)}
+                onClick={() => onActionClick(action.description)}
               >
                 <Icon className="w-6 h-6 text-blue-600 mb-2" />
                 <span className="text-sm text-gray-600 text-center">
