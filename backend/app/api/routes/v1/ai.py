@@ -12,7 +12,7 @@ from app.core.redis import get_redis_client
 from app.core.db.models import Request as RequestModel
 from app.core.connector import wait_for_response
 from app.core.speech_to_text import speech_to_text, video_to_text
-from app.core.config import settings
+from app.core.configs.config import settings
 
 redis_client = get_redis_client()
 logger = logging.getLogger(__name__)
