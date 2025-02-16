@@ -7,7 +7,8 @@
 ### Запуск через Docker (рекомендуется)
 
 1. Убедитесь, что у вас установлены Docker и Docker Compose
-2. Запустите приложение:
+2. Заполните ссылку на бэкенд в файле `docker-compose.yml` в параметре `- VITE_API_BASE_URL=http://localhost:8000` (если запускать все локально, то ссылка на бэкенд будет http://localhost:8000)
+3. Запустите приложение:
 ```bash
 docker compose up --build
 ```
