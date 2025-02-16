@@ -2,6 +2,15 @@
 
 Проект разработан для хакатона МТС Система, трек "Инклюзивный дом". Решение представляет собой систему умного помощника для людей с ограниченными возможностями, позволяющую взаимодействовать с системой ЖКХ через различные каналы коммуникации: голос, текст и язык жестов.
 
+## Запуск проекта
+
+1. Клонировать репозиторий
+2. Запустить модуль backend
+3. Запустить модуль ml_service
+4. Запустить модуль frontend
+
+См. инструкции по запуску в каждом модуле.
+
 ## Структура проекта
 
 ### Frontend (./frontend)
@@ -41,16 +50,7 @@ API-сервер на FastAPI для обработки запросов (биз
 - Оплата коммунальных услуг
 
 ## Технологии
-- Frontend: React, TypeScript, TailwindCSS, MediaPipe
+- Frontend: React, Vite, TypeScript, TailwindCSS
 - Backend: FastAPI, PostgreSQL, Redis, FFmpeg
-- ML Service: PyTorch, transformers, ONNX Runtime
-- Infrastructure: Docker, Docker Compose
-
-## Запуск проекта
-
-1. Клонировать репозиторий
-2. Запустить модуль backend
-3. Запустить модуль ml_service
-4. Запустить модуль frontend
-
-См. инструкции по запуску в каждом модуле.
+- ML Service: vLLM, Pytorch, huggingface
+- Infrastructure: Docker, Docker Compose, Nginx, Postgres, Redis
