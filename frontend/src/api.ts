@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'https://xdldpo-ip-93-120-241-234.tunnelmole.net';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export async function processText(text: string): Promise<any> {
   const response = await fetch(`${API_BASE_URL}/api/v1/ai/text`, {
