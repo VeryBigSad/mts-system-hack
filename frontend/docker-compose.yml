@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mts-frontend
+    ports:
+      - "3000:3000"  # Map container's nginx port 80 to host port 3000
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000  # Default backend URL
+    networks:
+      - mts-network
+    restart: unless-stopped
+
+
+networks:
+  mts-network:
+    driver: bridge
+
+volumes:
+  node_modules: 

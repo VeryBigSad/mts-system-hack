@@ -1,0 +1,31 @@
+model:
+  base_model: "path/to/llama/model"
+  lora:
+    r: 8
+    alpha: 16 
+    dropout: 0.05
+    target_modules: ["q_proj", "v_proj"]
+
+training:
+  batch_size: 4
+  num_epochs: 3
+  learning_rate: 2.0e-5
+  weight_decay: 0.01
+  warmup_steps: 100
+  gradient_accumulation_steps: 4
+  fp16: true
+
+data:
+  max_seq_length: 512
+  dataset_path: "path/to/dataset.json"
+
+output:
+  dir: "lora_output"
+  logging_dir: "logs"
+
+validation:
+  eval_steps: 200
+  save_steps: 200
+  logging_steps: 50
+
+seed: 42
