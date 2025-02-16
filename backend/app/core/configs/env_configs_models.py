@@ -5,6 +5,8 @@ class BaseConfigsModel(BaseModel):
     IS_DEBUG: bool = False
     EXTERNAL_URL: str | None = None
     HF_TOKEN: SecretStr | None = None
+    GIGACHAT_TOKEN: str | None = None
+    GIGACHAT_USER_ID: str | None = None
 
 
 class RedisConfigsModel(BaseModel):

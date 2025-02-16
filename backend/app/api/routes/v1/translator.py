@@ -3,7 +3,8 @@ import uuid
 import base64
 import httpx
 
-from app.api.schemas.ai import AIResponse
+from gigachat import GigaChat
+from app.api.schemas.ai import AIResponse, GigaChatResponse
 from fastapi import APIRouter, HTTPException, status, Request
 
 from app.core.redis import get_redis_client
@@ -15,7 +16,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["processing"])
 
 GIGACHAT_API_URL = "https://gigachat.devices.sberbank.ru/api/v1"
-
+gigachat_client = GigaChat(
+    verify_ssl_certs=False,
+    credentials=settings.GIGACHAT_TOKEN,
+    scope='GIGACHAT_API_PERS',
+    model='GigaChat-Max'
+)
+        
 
 async def upload_image_to_gigachat(image_data: str) -> str:
     """Upload image to GigaChat and return file ID."""
@@ -27,26 +34,8 @@ async def upload_image_to_gigachat(image_data: str) -> str:
         # Decode base64 to bytes
         image_bytes = base64.b64decode(image_data)
         
-        files = {
-            'file': ('image.jpg', image_bytes, 'image/jpeg')
-        }
-        
-        headers = {
-            'Accept': 'application/json',
-            'Authorization': f'Bearer {settings.GIGACHAT_TOKEN}'
-        }
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{GIGACHAT_API_URL}/files",
-                headers=headers,
-                files=files
-            )
-            
-            if not response.is_success:
-                raise ValueError(f"Failed to upload image: {response.text}")
-            
-            return response.json()['id']
+        file_id = await gigachat_client.aupload_file(('image.jpg', image_bytes, 'image/jpeg'))
+        return file_id.id_
     except Exception as e:
         logger.error(f"Error uploading image to GigaChat: {e}")
         raise
@@ -55,18 +44,12 @@ async def upload_image_to_gigachat(image_data: str) -> str:
 async def process_image_with_gigachat(file_id: str) -> dict:
     """Process image with GigaChat API."""
     try:
-        headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': f'Bearer {settings.GIGACHAT_TOKEN}'
-        }
-        
+
         payload = {
-            "model": "GigaChat",
             "messages": [
                 {
                     "role": "system",
-                    "content": "Ты - система распознавания жестов. Опиши, какой жест показан на изображении, и определи его значение. Ответ дай в формате JSON с полями task (одно из значений: call_elevator, check_camera, check_snow, create_ticket, submit_readings, pay_utilities, check_obstacles) и parameters (необходимые параметры для задачи)."
+                    "content": "Ты - система распознавания жестов русского жестового языка. Опиши, какой жест показан на изображении человеком, и определи его значение. В ответ дай одно слово или фразу, которую имеет ввиду человек, сделавший жест. Постарайся быть как можно точнее."
                 },
                 {
                     "role": "user",
@@ -74,44 +57,18 @@ async def process_image_with_gigachat(file_id: str) -> dict:
                     "attachments": [file_id]
                 }
             ],
-            "stream": False,
-            "update_interval": 0
         }
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{GIGACHAT_API_URL}/chat/completions",
-                headers=headers,
-                json=payload
-            )
-            
-            if not response.is_success:
-                raise ValueError(f"Failed to process with GigaChat: {response.text}")
-            
-            result = response.json()
-            # Parse the JSON response from the message content
-            try:
-                content = result['choices'][0]['message']['content']
-                return {"status": "success", **eval(content)}
-            except:
-                return {
-                    "status": "success",
-                    "task": "create_ticket",
-                    "parameters": {
-                        "category": "other",
-                        "description": content,
-                        "priority": "normal",
-                        "location": "не указано"
-                    }
-                }
+        result = await gigachat_client.achat(payload)
+
+        return result.choices[0].message.content
                 
     except Exception as e:
         logger.error(f"Error processing with GigaChat: {e}")
         raise
 
 
-@router.post("/raspalcovka", status_code=status.HTTP_200_OK, response_model=AIResponse)
-async def process_gesture(request: Request) -> AIResponse | None:
+@router.post("/raspalcovka", status_code=status.HTTP_200_OK, response_model=GigaChatResponse)
+async def process_gesture(request: Request) -> GigaChatResponse | None:
     """
     Process gesture image using GigaChat API.
     The request body should contain base64 encoded image.
@@ -134,15 +91,7 @@ async def process_gesture(request: Request) -> AIResponse | None:
             # Process with GigaChat
             response = await process_image_with_gigachat(file_id)
             
-            # Save request to database
-            await RequestModel.create(
-                id=request_uuid,
-                request_type="gesture",
-                status="Completed",
-                response=response
-            )
-            
-            return response
+            return GigaChatResponse(text=response)
             
         except ValueError as e:
             raise ValueError(str(e))

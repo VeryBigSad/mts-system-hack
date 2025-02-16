@@ -1,7 +1,7 @@
 import React, { useState, useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import { Send, Mic, Camera, StopCircle, Hand } from 'lucide-react';
-import { processText, processSpeech, processGesture } from '../api';
+import { processText, processSpeech, processGesture, textToSpeech, API_BASE_URL } from '../api';
 import { translations } from '../translations';
 
 interface InputAreaProps {
@@ -94,9 +94,13 @@ export const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(({ mode, on
       try {
         onSendMessage(textCopy, 'user');
         const response = await processText(textCopy);
-        onSendMessage(formatBotResponse(response), 'assistant');
+        const formattedResponse = formatBotResponse(response);
+        onSendMessage(formattedResponse, 'assistant');
+        await playTextToSpeech(formattedResponse);
       } catch (error) {
-        onSendMessage(translations.processingError, 'assistant');
+        const errorMessage = translations.processingError;
+        onSendMessage(errorMessage, 'assistant');
+        await playTextToSpeech(errorMessage);
       } finally {
         setIsProcessing(false);
       }
@@ -124,9 +128,13 @@ export const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(({ mode, on
             setIsProcessing(true);
             onSendMessage("_Голосовое сообщение_", 'user');
             const response = await processSpeech(audioBlob);
-            onSendMessage(formatBotResponse(response), 'assistant');
+            const formattedResponse = formatBotResponse(response);
+            onSendMessage(formattedResponse, 'assistant');
+            await playTextToSpeech(formattedResponse);
           } catch (error) {
-            onSendMessage(translations.voiceProcessingError, 'assistant');
+            const errorMessage = translations.voiceProcessingError;
+            onSendMessage(errorMessage, 'assistant');
+            await playTextToSpeech(errorMessage);
           } finally {
             setIsProcessing(false);
           }
@@ -161,7 +169,9 @@ export const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(({ mode, on
           if (screenshot) {
             const response = await processGesture(screenshot);
             if (response.status === 'success') {
-              onSendMessage(formatBotResponse(response), 'assistant');
+              const formattedResponse = formatBotResponse(response);
+              onSendMessage(formattedResponse, 'user');
+              await playTextToSpeech(formattedResponse);
             }
           }
         } catch (error) {
@@ -170,10 +180,12 @@ export const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(({ mode, on
             clearInterval(streamIntervalRef.current);
             streamIntervalRef.current = undefined;
             setIsRecording(false);
-            onSendMessage(translations.processingError, 'assistant');
+            const errorMessage = translations.processingError;
+            onSendMessage(errorMessage, 'user');
+            await playTextToSpeech(errorMessage);
           }
         }
-      }, 500);
+      }, 1500);
     } else {
       // Stop streaming
       if (streamIntervalRef.current) {
@@ -182,6 +194,42 @@ export const InputArea = forwardRef<InputAreaHandle, InputAreaProps>(({ mode, on
         setIsRecording(false);
         onSendMessage("_Распознавание жестов остановлено_", 'user');
       }
+    }
+  };
+
+  const playTextToSpeech = async (text: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/tts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'audio/mp3'
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get audio');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      // Create a new Audio element each time
+      const audio = new Audio(url);
+      
+      // Append the audio element to the document to ensure it isn't removed prematurely
+      document.body.appendChild(audio);
+      
+      await audio.play();
+      
+      // Clean up after playback ends
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(audio);
+      };
+    } catch (error) {
+      console.error('Failed to play TTS:', error);
     }
   };
 
